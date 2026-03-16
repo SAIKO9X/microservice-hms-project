@@ -64,39 +64,18 @@ public class UserServiceImpl implements UserService {
   private String passwordResetRoutingKey;
 
   @Override
-  public AuthResponse login(LoginRequest request) {
+  public AuthResponse login(LoginRequest request, String ipAddress) {
     User user = userRepository.findByEmail(request.email())
       .orElseThrow(InvalidCredentialsException::new);
 
-    if (user.getAccountLockedUntil() != null) {
-      if (user.getAccountLockedUntil().isAfter(LocalDateTime.now())) {
-        long minutesLeft = java.time.Duration.between(LocalDateTime.now(), user.getAccountLockedUntil()).toMinutes();
-        throw new InvalidOperationException("Conta temporariamente bloqueada por excesso de tentativas. Tente novamente em " + (minutesLeft > 0 ? minutesLeft : 1) + " minuto(s).");
-      } else {
-        // se o bloqueio expirou, libera a conta e zera as falhas
-        user.setAccountLockedUntil(null);
-        user.setFailedLoginAttempts(0);
-        userRepository.save(user);
-      }
-    }
+    validateAccountLock(user);
 
     try {
       authenticationManager.authenticate(
         new UsernamePasswordAuthenticationToken(request.email(), request.password())
       );
     } catch (BadCredentialsException ex) {
-      // se a senha estiver errada, incrementa as falhas
-      int attempts = user.getFailedLoginAttempts() + 1;
-      user.setFailedLoginAttempts(attempts);
-
-
-      if (attempts >= 5) { // bloqueia após 5 tentativas erradas
-        user.setAccountLockedUntil(LocalDateTime.now().plusMinutes(15));
-        userRepository.save(user);
-        throw new InvalidOperationException("Muitas tentativas incorretas. Conta bloqueada por 15 minutos.");
-      }
-
-      userRepository.save(user);
+      handleFailedLogin(user);
       throw new InvalidCredentialsException();
     }
 
@@ -104,20 +83,63 @@ public class UserServiceImpl implements UserService {
       throw new IllegalStateException("Conta não verificada. Por favor, verifique seu e-mail.");
     }
 
-    // zera as falhas após um login bem-sucedido
-    if (user.getFailedLoginAttempts() > 0) {
-      user.setFailedLoginAttempts(0);
-      user.setAccountLockedUntil(null);
-    }
+    resetFailedAttempts(user);
+
+    String currentDeviceId = request.deviceId() != null ? request.deviceId() : "Desconhecido";
+    checkAndLogNewDevice(user, ipAddress, currentDeviceId);
 
     String accessToken = jwtService.generateAccessToken(user);
     String refreshToken = jwtService.generateRefreshToken(user);
     long expirationTime = jwtService.getExpirationTime();
 
     user.setRefreshToken(refreshToken);
+    user.setLastIpAddress(ipAddress);
+    user.setLastDeviceId(currentDeviceId);
+
     userRepository.save(user);
 
     return AuthResponse.create(UserResponse.fromEntity(user), expirationTime, accessToken, refreshToken);
+  }
+
+  private void validateAccountLock(User user) {
+    if (user.getAccountLockedUntil() != null) {
+      if (user.getAccountLockedUntil().isAfter(LocalDateTime.now())) {
+        long minutesLeft = java.time.Duration.between(LocalDateTime.now(), user.getAccountLockedUntil()).toMinutes();
+        throw new InvalidOperationException("Conta temporariamente bloqueada por excesso de tentativas. Tente novamente em " + (minutesLeft > 0 ? minutesLeft : 1) + " minuto(s).");
+      } else {
+        user.setAccountLockedUntil(null);
+        user.setFailedLoginAttempts(0);
+        userRepository.save(user);
+      }
+    }
+  }
+
+  private void handleFailedLogin(User user) {
+    int attempts = user.getFailedLoginAttempts() + 1;
+    user.setFailedLoginAttempts(attempts);
+
+    if (attempts >= 5) {
+      user.setAccountLockedUntil(LocalDateTime.now().plusMinutes(15));
+      userRepository.save(user);
+      throw new InvalidOperationException("Muitas tentativas incorretas. Conta bloqueada por 15 minutos.");
+    }
+    userRepository.save(user);
+  }
+
+  private void resetFailedAttempts(User user) {
+    if (user.getFailedLoginAttempts() > 0) {
+      user.setFailedLoginAttempts(0);
+      user.setAccountLockedUntil(null);
+    }
+  }
+
+  private void checkAndLogNewDevice(User user, String ipAddress, String currentDeviceId) {
+    boolean isNewDeviceOrIp = (user.getLastIpAddress() != null && !user.getLastIpAddress().equals(ipAddress)) ||
+            (user.getLastDeviceId() != null && !user.getLastDeviceId().equals(currentDeviceId));
+
+    if (isNewDeviceOrIp) {
+      log.warn("Alerta de Segurança: Novo login detectado na sua conta. IP: {}", ipAddress);
+    }
   }
 
   @Override
@@ -435,3 +457,4 @@ public class UserServiceImpl implements UserService {
     }
   }
 }
+

@@ -24,7 +24,7 @@ public interface UserService {
 
   UserResponse updateUser(Long id, UserRequest request);
 
-  AuthResponse login(LoginRequest request);
+  AuthResponse login(LoginRequest request, String ipAddress);
 
   void updateUserStatus(Long id, boolean active);
 

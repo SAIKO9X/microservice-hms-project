@@ -8,6 +8,7 @@ import com.hms.user.dto.request.RefreshTokenRequest;
 import com.hms.user.dto.request.ResetPasswordRequest;
 import com.hms.user.dto.response.AuthResponse;
 import com.hms.user.services.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -23,8 +24,13 @@ public class AuthController implements AuthControllerDocs {
   private final UserService userService;
 
   @PostMapping("/login")
-  public ResponseEntity<ResponseWrapper<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
-    AuthResponse response = userService.login(request);
+  public ResponseEntity<ResponseWrapper<AuthResponse>> login(@Valid @RequestBody LoginRequest request, HttpServletRequest servletRequest) {
+    String ipAddress = servletRequest.getHeader("X-Forwarded-For");
+    if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
+      ipAddress = servletRequest.getRemoteAddr();
+    }
+
+    AuthResponse response = userService.login(request, ipAddress);
     return ResponseEntity.ok(ResponseWrapper.success(response));
   }
 

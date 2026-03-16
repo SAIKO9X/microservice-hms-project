@@ -43,6 +43,8 @@ class AuthServiceImplTest {
 
   private User mockUser;
   private LoginRequest request;
+  private final String IP_ADDRESS = "192.168.1.1";
+  private final String DEVICE_ID = "device-xyz-123";
 
   @BeforeEach
   void setUp() {
@@ -53,11 +55,11 @@ class AuthServiceImplTest {
     mockUser.setActive(true);
     mockUser.setFailedLoginAttempts(0);
 
-    request = new LoginRequest("medico@hms.com", "senha123");
+    request = new LoginRequest("medico@hms.com", "senha123", DEVICE_ID);
   }
 
   @Test
-  @DisplayName("Deve realizar login com sucesso, zerar falhas e retornar Access e Refresh Tokens")
+  @DisplayName("Deve realizar login com sucesso, salvar IP/Device, zerar falhas e retornar Access e Refresh Tokens")
   void login_WithValidCredentials_ShouldReturnTokens() {
     // simulando que ele tinha 2 erros anteriores, mas agora acertou
     mockUser.setFailedLoginAttempts(2);
@@ -68,7 +70,7 @@ class AuthServiceImplTest {
     when(jwtService.generateRefreshToken(mockUser)).thenReturn("refresh-token-123");
     when(jwtService.getExpirationTime()).thenReturn(900000L); // 15 min
 
-    AuthResponse response = userService.login(request);
+    AuthResponse response = userService.login(request, IP_ADDRESS);
 
     assertNotNull(response);
     assertEquals("access-token-123", response.accessToken());
@@ -77,6 +79,11 @@ class AuthServiceImplTest {
     // verifica se salvou o refresh token no banco e se zerou as falhas
     assertEquals("refresh-token-123", mockUser.getRefreshToken());
     assertEquals(0, mockUser.getFailedLoginAttempts());
+
+    // verifica se o IP e DeviceID foram salvos corretamente (Fingerprint)
+    assertEquals(IP_ADDRESS, mockUser.getLastIpAddress());
+    assertEquals(DEVICE_ID, mockUser.getLastDeviceId());
+
     verify(userRepository, times(1)).save(mockUser);
   }
 
@@ -89,7 +96,7 @@ class AuthServiceImplTest {
     when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
       .thenThrow(new BadCredentialsException("Bad credentials"));
 
-    assertThrows(InvalidCredentialsException.class, () -> userService.login(request));
+    assertThrows(InvalidCredentialsException.class, () -> userService.login(request, IP_ADDRESS));
 
     assertEquals(2, mockUser.getFailedLoginAttempts());
     assertNull(mockUser.getAccountLockedUntil()); // ainda não deve estar bloqueado
@@ -107,7 +114,7 @@ class AuthServiceImplTest {
     when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
       .thenThrow(new BadCredentialsException("Bad credentials"));
 
-    InvalidOperationException exception = assertThrows(InvalidOperationException.class, () -> userService.login(request));
+    InvalidOperationException exception = assertThrows(InvalidOperationException.class, () -> userService.login(request, IP_ADDRESS));
 
     assertTrue(exception.getMessage().contains("Conta bloqueada"));
     assertEquals(5, mockUser.getFailedLoginAttempts());
@@ -123,7 +130,7 @@ class AuthServiceImplTest {
 
     when(userRepository.findByEmail("medico@hms.com")).thenReturn(Optional.of(mockUser));
 
-    InvalidOperationException exception = assertThrows(InvalidOperationException.class, () -> userService.login(request));
+    InvalidOperationException exception = assertThrows(InvalidOperationException.class, () -> userService.login(request, IP_ADDRESS));
 
     assertTrue(exception.getMessage().contains("Conta temporariamente bloqueada"));
 
@@ -142,7 +149,7 @@ class AuthServiceImplTest {
     when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(null);
     when(jwtService.generateAccessToken(mockUser)).thenReturn("access-token-123");
 
-    userService.login(request);
+    userService.login(request, IP_ADDRESS);
 
     // verifica se limpou a trava antes de seguir
     assertNull(mockUser.getAccountLockedUntil());
@@ -155,9 +162,9 @@ class AuthServiceImplTest {
   void login_UserNotFound_ShouldThrowInvalidCredentialsException() {
     when(userRepository.findByEmail("inexistente@hms.com")).thenReturn(Optional.empty());
 
-    LoginRequest invalidReq = new LoginRequest("inexistente@hms.com", "senha123");
+    LoginRequest invalidReq = new LoginRequest("inexistente@hms.com", "senha123", DEVICE_ID);
 
-    assertThrows(InvalidCredentialsException.class, () -> userService.login(invalidReq));
+    assertThrows(InvalidCredentialsException.class, () -> userService.login(invalidReq, IP_ADDRESS));
     verify(authenticationManager, never()).authenticate(any());
   }
 }

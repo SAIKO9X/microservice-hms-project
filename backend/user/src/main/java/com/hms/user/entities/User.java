@@ -41,6 +41,12 @@ public class User {
   @Column(length = 512)
   private String refreshToken;
 
+  @Column(length = 45)
+  private String lastIpAddress;
+
+  @Column(length = 255)
+  private String lastDeviceId; // pode ser um hash do user-agent ou um identificador único do dispositivo
+
   @Column(length = 255)
   private String resetPasswordToken;
 

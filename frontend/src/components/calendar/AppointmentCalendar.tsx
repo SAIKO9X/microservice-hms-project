@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
-import type { Event, EventProps } from "react-big-calendar";
+import type { Event, EventProps, View } from "react-big-calendar";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import type { withDragAndDropProps } from "react-big-calendar/lib/addons/dragAndDrop";
 import { format, parse, startOfWeek, getDay } from "date-fns";
@@ -109,6 +110,9 @@ export function AppointmentCalendar({
   onEventReschedule,
   onEventClick,
 }: AppointmentCalendarProps) {
+  const [view, setView] = useState<View>("work_week");
+  const [date, setDate] = useState<Date>(new Date());
+
   const onEventDrop: withDragAndDropProps<AppointmentEvent>["onEventDrop"] = ({
     event,
     start,
@@ -122,7 +126,7 @@ export function AppointmentCalendar({
   };
 
   const eventStyleGetter = (event: AppointmentEvent) => {
-    let backgroundColor = "hsl(var(--primary))";
+    let backgroundColor = "var(--primary)";
 
     if (event.status === "COMPLETED") backgroundColor = "#10b981";
     if (event.status === "CANCELLED" || event.status === "NO_SHOW")
@@ -131,7 +135,7 @@ export function AppointmentCalendar({
     return {
       style: {
         backgroundColor,
-        color: "white",
+        color: "var(--primary-foreground)",
         border: `1px solid ${backgroundColor}`,
       },
     };
@@ -145,7 +149,10 @@ export function AppointmentCalendar({
         onEventDrop={onEventDrop}
         onSelectEvent={(e) => onEventClick?.(e)}
         resizable={false}
-        defaultView="work_week"
+        view={view}
+        onView={setView}
+        date={date}
+        onNavigate={setDate}
         views={["month", "work_week", "day"]}
         step={30}
         timeslots={2}

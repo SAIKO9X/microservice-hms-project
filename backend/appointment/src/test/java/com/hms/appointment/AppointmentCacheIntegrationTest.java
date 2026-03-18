@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
+
 import java.time.LocalDateTime;
 import java.util.Objects;
 
@@ -36,12 +37,14 @@ public class AppointmentCacheIntegrationTest extends BaseIntegrationTest {
   void setUp() {
     appointmentRepository.deleteAll();
     doctorReadModelRepository.deleteAll();
-    Objects.requireNonNull(cacheManager.getCache("appointments")).clear();
+    if (cacheManager.getCache("doctor_appointments") != null) {
+      Objects.requireNonNull(cacheManager.getCache("doctor_appointments")).clear();
+    }
   }
 
   @Test
   void shouldEvictCache_WhenAppointmentStatusIsUpdated() {
-    String cacheName = "appointments";
+    String cacheName = "doctor_appointments";
     Long doctorUserId = 1L;
 
     stubFor(get(urlEqualTo("/profile/doctors/by-user/" + doctorUserId))

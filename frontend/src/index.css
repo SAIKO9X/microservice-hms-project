@@ -145,7 +145,7 @@
 
 /* --- OVERRIDES DO REACT-BIG-CALENDAR PARA SHADCN/UI --- */
 .rbc-calendar {
-  @apply font-sans text-sm border-none bg-background rounded-lg text-foreground;
+  @apply font-sans text-sm border-none bg-transparent rounded-lg text-foreground;
 }
 
 .rbc-header {
@@ -155,7 +155,7 @@
 .rbc-month-view,
 .rbc-time-view,
 .rbc-agenda-view {
-  @apply border-border border rounded-md bg-background overflow-hidden;
+  @apply border-border border rounded-md bg-card overflow-hidden;
 }
 
 .rbc-day-bg {
@@ -178,13 +178,50 @@
   @apply bg-muted/10 text-muted-foreground opacity-50;
 }
 
-.rbc-today {
-  @apply bg-primary/5;
+.rbc-calendar .rbc-today {
+  background-color: color-mix(
+    in oklch,
+    var(--primary) 8%,
+    transparent
+  ) !important;
+}
+
+.dark .rbc-calendar .rbc-today {
+  background-color: color-mix(
+    in oklch,
+    var(--primary) 15%,
+    transparent
+  ) !important;
+}
+
+/* Fallback para off-range no dark */
+.dark .rbc-off-range-bg {
+  background-color: color-mix(in oklch, var(--background) 80%, var(--card));
 }
 
 /* Estilo Base dos Eventos */
 .rbc-event {
-  @apply rounded-md border border-transparent shadow-sm transition-all hover:brightness-105 p-1 outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  @apply rounded-md border border-transparent shadow-sm transition-all
+         hover:brightness-105 p-1 outline-none focus:ring-2 focus:ring-ring
+         focus:ring-offset-2 overflow-hidden;
+  min-height: 42px !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Oculta o label de horário padrão */
+.rbc-event-label {
+  display: none !important;
+}
+
+.rbc-event-content {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  overflow: hidden;
+}
+
+.rbc-day-slot .rbc-events-container {
+  margin-right: 0 !important;
 }
 
 /* View de Semanas/Dias */
@@ -195,19 +232,29 @@
   @apply border-t border-border;
 }
 .rbc-timeslot-group {
-  @apply border-b border-border min-h-[48px];
+  /* Garante transparência absoluta para o destaque do Today brilhar através dele */
+  @apply border-b border-border min-h-[48px] bg-transparent;
 }
 .rbc-time-slot {
-  @apply border-none;
+  @apply border-none bg-transparent;
+  border: none !important;
 }
 
 /* Linha do horário atual */
 .rbc-current-time-indicator {
-  @apply bg-primary h-0.5;
-  box-shadow: 0 0 4px hsl(var(--primary));
+  height: 3px !important;
+  width: 100% !important;
+  z-index: 50 !important;
+  opacity: 1 !important;
 }
+
 .rbc-current-time-indicator::before {
-  @apply content-[''] absolute -left-1.5 -top-1 w-3 h-3 bg-primary rounded-full;
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  @apply w-[10px] h-[10px] bg-primary rounded-full;
 }
 
 /* Limpar links padrões */

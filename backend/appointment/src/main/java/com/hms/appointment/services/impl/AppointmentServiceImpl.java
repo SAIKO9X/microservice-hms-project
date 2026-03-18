@@ -199,7 +199,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   @Transactional(readOnly = true)
-  @Cacheable(value = "appointments", key = "#userId")
+  @Cacheable(value = "doctor_appointments", key = "#userId", condition = "#dateFilter == null || #dateFilter == 'all'")
   public List<AppointmentDetailResponse> getAppointmentDetailsForDoctor(Long userId, String dateFilter) {
     DoctorReadModel doctor = getOrSyncDoctor(userId);
 
@@ -212,11 +212,11 @@ public class AppointmentServiceImpl implements AppointmentService {
         doctor.getDoctorId(), range.start(), range.end());
     }
 
-    if (appointments.isEmpty()) return Collections.emptyList();
+    if (appointments.isEmpty()) return new ArrayList<>();
 
     return appointments.stream()
       .map(app -> mapToDetailResponse(app, doctor))
-      .toList();
+      .collect(Collectors.toList());
   }
 
   @Override
@@ -273,7 +273,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   @Override
   @Transactional
-  @CacheEvict(value = "appointments", key = "#requesterUserId")
+  @CacheEvict(value = "doctor_appointments", key = "#requesterUserId")
   public AppointmentResponse completeAppointment(Long appointmentId, String notes, Long requesterUserId) {
     Appointment app = findAppointmentByIdOrThrow(appointmentId);
 

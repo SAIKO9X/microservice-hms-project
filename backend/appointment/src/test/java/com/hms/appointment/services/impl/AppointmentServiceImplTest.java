@@ -1,13 +1,12 @@
 package com.hms.appointment.services.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hms.appointment.clients.ProfileFeignClient;
 import com.hms.appointment.clients.UserFeignClient;
 import com.hms.appointment.dto.request.AppointmentCreateRequest;
 import com.hms.appointment.dto.response.AppointmentResponse;
-import com.hms.appointment.entities.Appointment;
-import com.hms.appointment.entities.DoctorAvailability;
-import com.hms.appointment.entities.DoctorReadModel;
-import com.hms.appointment.entities.PatientReadModel;
+import com.hms.appointment.entities.*;
 import com.hms.appointment.enums.AppointmentStatus;
 import com.hms.appointment.enums.AppointmentType;
 import com.hms.appointment.repositories.*;
@@ -57,6 +56,10 @@ class AppointmentServiceImplTest {
   private ProfileFeignClient profileFeignClient;
   @Mock
   private UserFeignClient userFeignClient;
+  @Mock
+  private OutboxEventRepository outboxEventRepository;
+  @Mock
+  private ObjectMapper objectMapper;
 
   private PatientReadModel mockPatient;
   private DoctorReadModel mockDoctor;
@@ -76,34 +79,36 @@ class AppointmentServiceImplTest {
 
   @Test
   @DisplayName("Deve criar um agendamento com sucesso quando todas as regras forem atendidas")
-  void createAppointment_Success() {
+  void createAppointment_Success() throws JsonProcessingException {
     Long patientUserId = 100L;
-    LocalDateTime validDateTime = LocalDateTime.now().plusDays(2).withHour(10).withMinute(0).withSecond(0);
-
     AppointmentCreateRequest request = new AppointmentCreateRequest(
-      2L, validDateTime, 60, "Checkup geral", AppointmentType.IN_PERSON
+      2L,
+      LocalDateTime.now().plusDays(2).withHour(14).withMinute(0),
+      60,
+      "Consulta de rotina",
+      AppointmentType.ONLINE
     );
 
-    when(patientReadModelRepository.findByUserId(patientUserId)).thenReturn(Optional.of(mockPatient));
-    when(doctorReadModelRepository.findById(2L)).thenReturn(Optional.of(mockDoctor));
-    when(patientReadModelRepository.findById(1L)).thenReturn(Optional.of(mockPatient));
-    when(appointmentRepository.countByPatientIdAndDate(anyLong(), any())).thenReturn(0L);
-    when(unavailabilityRepository.hasUnavailability(anyLong(), any(), any())).thenReturn(false);
+    when(patientReadModelRepository.findByUserId(anyLong())).thenReturn(Optional.of(mockPatient));
+    when(patientReadModelRepository.findById(anyLong())).thenReturn(Optional.of(mockPatient));
+    when(doctorReadModelRepository.findById(anyLong())).thenReturn(Optional.of(mockDoctor));
 
     DoctorAvailability availability = new DoctorAvailability();
-    availability.setDayOfWeek(validDateTime.getDayOfWeek());
-    availability.setStartTime(LocalTime.of(8, 0));
-    availability.setEndTime(LocalTime.of(18, 0));
-    when(availabilityRepository.findByDoctorId(2L)).thenReturn(List.of(availability));
+    availability.setDayOfWeek(request.appointmentDateTime().getDayOfWeek());
+    availability.setStartTime(LocalTime.MIN);
+    availability.setEndTime(LocalTime.MAX);
+    when(availabilityRepository.findByDoctorId(anyLong())).thenReturn(List.of(availability));
 
+    when(unavailabilityRepository.hasUnavailability(anyLong(), any(), any())).thenReturn(false);
     when(appointmentRepository.hasDoctorConflict(anyLong(), any(), any())).thenReturn(false);
     when(appointmentRepository.hasPatientConflict(anyLong(), any(), any())).thenReturn(false);
+    when(objectMapper.writeValueAsString(any())).thenReturn("{}");
 
     Appointment savedAppointment = new Appointment();
     savedAppointment.setId(1L);
     savedAppointment.setPatientId(1L);
     savedAppointment.setDoctorId(2L);
-    savedAppointment.setAppointmentDateTime(validDateTime);
+    savedAppointment.setAppointmentDateTime(request.appointmentDateTime());
     savedAppointment.setStatus(AppointmentStatus.SCHEDULED);
     when(appointmentRepository.save(any(Appointment.class))).thenReturn(savedAppointment);
 
@@ -114,9 +119,7 @@ class AppointmentServiceImplTest {
     assertEquals(AppointmentStatus.SCHEDULED, response.status());
     verify(appointmentRepository, times(1)).save(any(Appointment.class));
 
-    verify(rabbitTemplate, atLeastOnce()).convertAndSend(
-      any(), anyString(), any(com.hms.common.dto.event.EventEnvelope.class)
-    );
+    verify(outboxEventRepository, times(1)).save(any(OutboxEvent.class));
 
     verify(rabbitTemplate, atLeastOnce()).convertAndSend(
       any(), anyString(), any(com.hms.common.dto.event.EventEnvelope.class), any(org.springframework.amqp.core.MessagePostProcessor.class)

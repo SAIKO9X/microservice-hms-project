@@ -2,6 +2,7 @@ package com.hms.appointment.clients;
 
 import com.hms.appointment.dto.external.UserResponse;
 import com.hms.common.config.FeignClientInterceptor;
+import com.hms.common.exceptions.ResourceNotFoundException;
 import com.hms.common.exceptions.ServiceUnavailableException;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.slf4j.Logger;
@@ -24,6 +25,9 @@ public interface UserFeignClient {
   UserResponse getUserById(@PathVariable("id") Long id);
 
   default UserResponse getUserByIdFallback(Long id, Throwable t) {
+    if (t instanceof ResourceNotFoundException) {
+      throw (ResourceNotFoundException) t;
+    }
     log.error("Fallback triggered for getUserById: {}", t.getMessage());
     throw new ServiceUnavailableException("User Service is unavailable");
   }

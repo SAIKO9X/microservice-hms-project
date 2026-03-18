@@ -22,9 +22,9 @@ export const AdminDoctorSchedulePage = () => {
 
   const isLoading = isLoadingDoctor || isLoadingAppointments;
 
-  // A Agenda mostra tudo o que NÃO está "Concluído"
+  // a agenda mostra tudo o que NÃO está "Concluído"
   const doctorSchedule = appointments?.filter(
-    (app) => app.status !== "COMPLETED"
+    (app) => app.status !== "COMPLETED",
   );
 
   return (

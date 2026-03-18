@@ -11,7 +11,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 
 public interface UserService {
-
   UserResponse createUser(UserRequest request);
 
   UserResponse getUserById(Long id);
@@ -44,4 +43,8 @@ public interface UserService {
 
   @Transactional
   void changePassword(Long id, String oldPassword, String newPassword);
+
+  Boolean checkCpfExistsSafely(String cpf);
+
+  Boolean checkCrmExistsSafely(String crm);
 }

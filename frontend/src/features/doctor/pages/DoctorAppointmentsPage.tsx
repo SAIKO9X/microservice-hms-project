@@ -32,7 +32,7 @@ export const DoctorAppointmentsPage = () => {
 
   const handleCompleteAppointment = async (
     appointmentId: number,
-    notes: string
+    notes: string,
   ) => {
     try {
       await completeAppointmentMutation.mutateAsync({

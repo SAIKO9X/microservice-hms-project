@@ -16,6 +16,7 @@ import com.hms.user.enums.UserRole;
 import com.hms.user.repositories.UserRepository;
 import com.hms.user.services.JwtService;
 import com.hms.user.services.UserService;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -23,6 +24,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -47,6 +49,11 @@ public class UserServiceImpl implements UserService {
   private final AuthenticationManager authenticationManager;
   private final RabbitTemplate rabbitTemplate;
   private final ProfileFeignClient profileFeignClient;
+  
+  private final Random random = new Random();
+
+  @Lazy
+  private final UserService self;
 
   @Value("${application.rabbitmq.exchange}")
   private String exchange;
@@ -413,7 +420,7 @@ public class UserServiceImpl implements UserService {
   }
 
   private String generateVerificationCode() {
-    return String.format("%06d", new Random().nextInt(999999));
+    return String.format("%06d", random.nextInt(999999));
   }
 
   private void publishUserCreatedEvent(User user, String cpf, String crm, String code) {
@@ -458,20 +465,34 @@ public class UserServiceImpl implements UserService {
   private void validateCpfOrCrm(UserRole role, String cpfOuCrm) {
     if (cpfOuCrm == null || cpfOuCrm.isBlank()) return;
 
-    try {
-      if (role == UserRole.PATIENT) {
-        if (Boolean.TRUE.equals(profileFeignClient.checkCpfExists(cpfOuCrm).data())) {
-          throw new ResourceAlreadyExistsException("Paciente", "Já existe um cadastro utilizando este CPF.");
-        }
-      } else if (role == UserRole.DOCTOR) {
-        if (Boolean.TRUE.equals(profileFeignClient.checkCrmExists(cpfOuCrm).data())) {
-          throw new ResourceAlreadyExistsException("Médico", "Já existe um cadastro utilizando este CRM.");
-        }
-      }
-    } catch (feign.FeignException e) {
-      log.error("Erro ao comunicar com profile-service para checar CPF/CRM: {}", e.getMessage());
-      throw new InvalidOperationException("Não foi possível validar o documento neste momento. Tente novamente em instantes.");
+    if (role == UserRole.PATIENT && Boolean.TRUE.equals(self.checkCpfExistsSafely(cpfOuCrm))) {
+      throw new ResourceAlreadyExistsException("Paciente", "Já existe um cadastro utilizando este CPF.");
+    } else if (role == UserRole.DOCTOR && Boolean.TRUE.equals(self.checkCrmExistsSafely(cpfOuCrm))) {
+      throw new ResourceAlreadyExistsException("Médico", "Já existe um cadastro utilizando este CRM.");
     }
   }
-}
 
+  @Override
+  @CircuitBreaker(name = "profileService", fallbackMethod = "checkCpfExistsFallback")
+  public Boolean checkCpfExistsSafely(String cpf) {
+    return profileFeignClient.checkCpfExists(cpf).data();
+  }
+
+  @SuppressWarnings("unused")
+  public Boolean checkCpfExistsFallback(String cpf, Throwable t) {
+    log.error("Profile Service unavailable when checking CPF {}: {}", cpf, t.getMessage());
+    throw new ServiceUnavailableException("Não foi possível validar o CPF no momento. Tente novamente mais tarde.");
+  }
+
+  @Override
+  @CircuitBreaker(name = "profileService", fallbackMethod = "checkCrmExistsFallback")
+  public Boolean checkCrmExistsSafely(String crm) {
+    return profileFeignClient.checkCrmExists(crm).data();
+  }
+
+  @SuppressWarnings("unused")
+  public Boolean checkCrmExistsFallback(String crm, Throwable t) {
+    log.error("Profile Service unavailable when checking CRM {}: {}", crm, t.getMessage());
+    throw new ServiceUnavailableException("Não foi possível validar o CRM no momento. Tente novamente mais tarde.");
+  }
+}

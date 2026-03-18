@@ -34,7 +34,6 @@ spring:
     baseline-version: 0
     locations: classpath:db/migration
     clean-disabled: false
-    clean-on-validation-error: true
 
 eureka:
   client:

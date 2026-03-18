@@ -1,5 +1,7 @@
 package com.hms.appointment.services.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hms.appointment.clients.ProfileFeignClient;
 import com.hms.appointment.clients.UserFeignClient;
 import com.hms.appointment.config.RabbitMQConfig;
@@ -48,6 +50,8 @@ import java.util.stream.IntStream;
 @Service
 public class AppointmentServiceImpl implements AppointmentService {
 
+  private static final String AGGREGATE_TYPE_APPOINTMENT = "Appointment";
+
   private final AppointmentRepository appointmentRepository;
   private final DoctorReadModelRepository doctorReadModelRepository;
   private final PatientReadModelRepository patientReadModelRepository;
@@ -57,6 +61,8 @@ public class AppointmentServiceImpl implements AppointmentService {
   private final RabbitTemplate rabbitTemplate;
   private final ProfileFeignClient profileFeignClient;
   private final UserFeignClient userFeignClient;
+  private final OutboxEventRepository outboxEventRepository;
+  private final ObjectMapper objectMapper;
 
   private final AppointmentService self;
 
@@ -70,6 +76,8 @@ public class AppointmentServiceImpl implements AppointmentService {
     RabbitTemplate rabbitTemplate,
     ProfileFeignClient profileFeignClient,
     UserFeignClient userFeignClient,
+    OutboxEventRepository outboxEventRepository,
+    ObjectMapper objectMapper,
     @Lazy AppointmentService self
   ) {
     this.appointmentRepository = appointmentRepository;
@@ -81,6 +89,8 @@ public class AppointmentServiceImpl implements AppointmentService {
     this.rabbitTemplate = rabbitTemplate;
     this.profileFeignClient = profileFeignClient;
     this.userFeignClient = userFeignClient;
+    this.outboxEventRepository = outboxEventRepository;
+    this.objectMapper = objectMapper;
     this.self = self;
   }
 
@@ -323,7 +333,21 @@ public class AppointmentServiceImpl implements AppointmentService {
         .payload(event)
         .build();
 
-      rabbitTemplate.convertAndSend(exchange, "appointment.saga.started", envelope);
+      OutboxEvent outboxEvent = OutboxEvent.builder()
+        .id(UUID.randomUUID())
+        .aggregateType(AGGREGATE_TYPE_APPOINTMENT)
+        .aggregateId(app.getId().toString())
+        .eventType("appointment.saga.started")
+        .payload(objectMapper.writeValueAsString(envelope))
+        .createdAt(LocalDateTime.now())
+        .processed(false)
+        .build();
+
+      outboxEventRepository.save(outboxEvent);
+
+    } catch (JsonProcessingException e) {
+      log.error("Failed to serialize saga start event for appointment {}", app.getId(), e);
+      throw new IllegalStateException("Error serializing outbox event", e);
     } catch (Exception e) {
       log.error("Failed to publish saga start event for appointment {}", app.getId(), e);
     }
@@ -662,7 +686,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
   private Appointment findAppointmentByIdOrThrow(Long id) {
     return appointmentRepository.findById(id)
-      .orElseThrow(() -> new ResourceNotFoundException("Appointment", id));
+      .orElseThrow(() -> new ResourceNotFoundException(AGGREGATE_TYPE_APPOINTMENT, id));
   }
 
   private DateRange calculateDateRange(String filter) {
@@ -749,7 +773,20 @@ public class AppointmentServiceImpl implements AppointmentService {
         event
       );
 
-      rabbitTemplate.convertAndSend(exchange, "appointment.status.changed", envelope);
+      OutboxEvent outboxEvent = OutboxEvent.builder()
+        .id(UUID.randomUUID())
+        .aggregateType(AGGREGATE_TYPE_APPOINTMENT)
+        .aggregateId(app.getId().toString())
+        .eventType("appointment.status.changed")
+        .payload(objectMapper.writeValueAsString(envelope))
+        .createdAt(LocalDateTime.now())
+        .processed(false)
+        .build();
+
+      outboxEventRepository.save(outboxEvent);
+
+    } catch (JsonProcessingException e) {
+      log.error("Erro ao serializar evento de status: {}", e.getMessage());
     } catch (Exception e) {
       log.error("Erro ao publicar evento de status: {}", e.getMessage());
     }
@@ -815,26 +852,40 @@ public class AppointmentServiceImpl implements AppointmentService {
     try {
       waitlistRepository.findFirstByDoctorIdAndDateOrderByCreatedAtAsc(doctorId, date.toLocalDate())
         .ifPresent(entry -> {
+          try {
+            DoctorReadModel doctor = doctorReadModelRepository.findById(doctorId).orElse(null);
+            String doctorName = doctor != null ? doctor.getFullName() : "Médico";
 
-          DoctorReadModel doctor = doctorReadModelRepository.findById(doctorId).orElse(null);
-          String doctorName = doctor != null ? doctor.getFullName() : "Médico";
+            PatientReadModel patient = patientReadModelRepository.findById(entry.getPatientId()).orElse(null);
+            Long userId = patient != null ? patient.getUserId() : null;
 
-          PatientReadModel patient = patientReadModelRepository.findById(entry.getPatientId()).orElse(null);
-          Long userId = patient != null ? patient.getUserId() : null;
+            WaitlistNotificationEvent event = new WaitlistNotificationEvent(
+              userId,
+              entry.getPatientEmail(),
+              entry.getPatientName(),
+              doctorName,
+              date
+            );
 
-          WaitlistNotificationEvent event = new WaitlistNotificationEvent(
-            userId,
-            entry.getPatientEmail(),
-            entry.getPatientName(),
-            doctorName,
-            date
-          );
+            EventEnvelope<WaitlistNotificationEvent> envelope = EventEnvelope.create(
+              "WAITLIST_NOTIFICATION", String.valueOf(entry.getId()), event);
 
-          EventEnvelope<WaitlistNotificationEvent> envelope = EventEnvelope.create(
-            "WAITLIST_NOTIFICATION", String.valueOf(entry.getId()), event);
+            OutboxEvent outboxEvent = OutboxEvent.builder()
+              .id(UUID.randomUUID())
+              .aggregateType("WaitlistEntry")
+              .aggregateId(entry.getId().toString())
+              .eventType(RabbitMQConfig.WAITLIST_ROUTING_KEY)
+              .payload(objectMapper.writeValueAsString(envelope))
+              .createdAt(LocalDateTime.now())
+              .processed(false)
+              .build();
 
-          rabbitTemplate.convertAndSend(exchange, RabbitMQConfig.WAITLIST_ROUTING_KEY, envelope);
-          waitlistRepository.delete(entry);
+            outboxEventRepository.save(outboxEvent);
+            waitlistRepository.delete(entry);
+          } catch (JsonProcessingException e) {
+            log.error("Erro ao serializar notificação de lista de espera: {}", e.getMessage());
+            throw new IllegalStateException("Serialization error", e);
+          }
         });
     } catch (Exception e) {
       log.error("Erro ao notificar lista de espera: {}", e.getMessage());

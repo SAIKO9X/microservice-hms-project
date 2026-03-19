@@ -21,6 +21,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -66,6 +67,8 @@ class AppointmentServiceImplTest {
 
   @BeforeEach
   void setUp() {
+    ReflectionTestUtils.setField(appointmentService, "self", appointmentService);
+
     mockPatient = new PatientReadModel();
     mockPatient.setPatientId(1L);
     mockPatient.setUserId(100L);

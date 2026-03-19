@@ -35,8 +35,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.Random;
 import java.util.UUID;
 
 @Service
@@ -51,7 +51,7 @@ public class UserServiceImpl implements UserService {
   private final RabbitTemplate rabbitTemplate;
   private final ProfileFeignClient profileFeignClient;
 
-  private final Random random = new Random();
+  private final SecureRandom random = new SecureRandom();
 
   @Lazy
   @Autowired

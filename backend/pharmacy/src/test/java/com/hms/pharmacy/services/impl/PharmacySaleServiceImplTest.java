@@ -24,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -65,6 +66,8 @@ class PharmacySaleServiceImplTest {
 
   @BeforeEach
   void setUp() {
+    ReflectionTestUtils.setField(pharmacySaleService, "self", pharmacySaleService);
+
     mockPatient = new PatientReadModel();
     mockPatient.setUserId(100L);
     mockPatient.setName("João Comprador");

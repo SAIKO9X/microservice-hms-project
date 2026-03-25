@@ -193,10 +193,10 @@ export function InvoicesList({ invoices, onPay, isPaying }: InvoicesListProps) {
                         variant="ghost"
                         className="h-8 w-8 text-muted-foreground hover:text-primary"
                         title="Baixar Fatura (PDF)"
-                        onClick={() => handleDownloadPdf(inv.id)}
-                        disabled={downloadingId === inv.id}
+                        onClick={() => handleDownloadPdf(String(inv.id))}
+                        disabled={downloadingId === String(inv.id)}
                       >
-                        {downloadingId === inv.id ? (
+                        {downloadingId === String(inv.id) ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <Download className="h-4 w-4" />
@@ -206,11 +206,11 @@ export function InvoicesList({ invoices, onPay, isPaying }: InvoicesListProps) {
                       {needsPatientPayment && inv.status !== "CANCELLED" ? (
                         <Button
                           size="sm"
-                          onClick={() => onPay(inv.id)}
+                          onClick={() => onPay(String(inv.id))}
                           disabled={!!isPaying}
                           className="bg-blue-600 hover:bg-blue-700 text-white"
                         >
-                          {isPaying === inv.id ? (
+                          {isPaying === String(inv.id) ? (
                             <Loader2 className="h-4 w-4 animate-spin mr-2" />
                           ) : null}
                           Pagar

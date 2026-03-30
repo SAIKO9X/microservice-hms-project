@@ -94,12 +94,11 @@ export const PatientProfilePage = () => {
   // verifica se profile é do tipo PatientProfile
   const patientProfile = profile as PatientProfile;
 
-  // verifica se o perfil está incompleto
   const isProfileIncomplete =
     patientProfile &&
-    !patientProfile.phoneNumber &&
-    !patientProfile.address &&
-    !patientProfile.dateOfBirth;
+    (!patientProfile.phoneNumber ||
+      !patientProfile.address ||
+      !patientProfile.dateOfBirth);
 
   const personalInfoData = [
     { label: "CPF", value: patientProfile?.cpf || "Não informado" },
@@ -168,7 +167,7 @@ export const PatientProfilePage = () => {
 
   return (
     <div className="container mx-auto p-4 space-y-8">
-      {/* Aviso para perfil incompleto */}
+      {/* aviso para perfil incompleto */}
       {isProfileIncomplete && (
         <CustomNotification
           variant="info"
@@ -187,7 +186,6 @@ export const PatientProfilePage = () => {
         />
       )}
 
-      {/* --- CABEÇALHO DO PERFIL --- */}
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -196,7 +194,9 @@ export const PatientProfilePage = () => {
                 <AvatarImage
                   src={
                     patientProfile?.profilePictureUrl
-                      ? `${API_BASE_URL}${patientProfile.profilePictureUrl}`
+                      ? patientProfile.profilePictureUrl.startsWith("http")
+                        ? patientProfile.profilePictureUrl
+                        : `${API_BASE_URL}${patientProfile.profilePictureUrl}`
                       : undefined
                   }
                   alt="Foto do perfil"
@@ -241,9 +241,7 @@ export const PatientProfilePage = () => {
         </CardHeader>
       </Card>
 
-      {/* --- GRIDS DE INFORMAÇÕES --- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        {/* Coluna da Esquerda */}
         <div className="space-y-8">
           <ProfileInfoTable
             title="Informações Pessoais"
@@ -255,7 +253,6 @@ export const PatientProfilePage = () => {
           />
         </div>
 
-        {/* Coluna da Direita */}
         <div className="space-y-8">
           <ProfileInfoTable
             title="Informações Médicas Básicas"

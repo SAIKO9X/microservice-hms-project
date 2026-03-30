@@ -45,11 +45,15 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   searchKey?: string;
+  emptyMessage?: string;
+  emptyDescription?: string;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  emptyMessage = "Nenhum registro encontrado",
+  emptyDescription = "Tente ajustar os filtros ou adicionar novos registros",
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -79,7 +83,7 @@ export function DataTable<TData, TValue>({
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-4">
       {/* Column visibility toggle */}
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
@@ -114,11 +118,11 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border bg-card">
+      <div className="rounded-lg border bg-card overflow-hidden">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="border-b">
+              <TableRow key={headerGroup.id} className="border-b bg-muted/40">
                 {headerGroup.headers.map((header) => {
                   return (
                     <TableHead
@@ -162,10 +166,8 @@ export function DataTable<TData, TValue>({
                   className="h-24 text-center text-muted-foreground"
                 >
                   <div className="flex flex-col items-center justify-center space-y-2">
-                    <div className="text-sm">Nenhum medicamento encontrado</div>
-                    <div className="text-xs">
-                      Tente ajustar os filtros ou adicionar novos medicamentos
-                    </div>
+                    <div className="text-sm">{emptyMessage}</div>
+                    <div className="text-xs">{emptyDescription}</div>
                   </div>
                 </TableCell>
               </TableRow>
@@ -174,7 +176,7 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      {/* PAgination */}
+      {/* Pagination */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
         <div className="flex items-center space-x-6 lg:space-x-8">
           <div className="flex items-center space-x-2">

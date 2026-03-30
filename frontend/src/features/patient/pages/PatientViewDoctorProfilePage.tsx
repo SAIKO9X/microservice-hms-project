@@ -33,11 +33,11 @@ import {
 import { ChatSheet } from "@/features/chat/components/ChatSheet";
 import { CreateAppointmentDialog } from "@/features/patient/components/CreateAppointmentDialog";
 import { CreateReviewDialog } from "@/features/patient/components/CreateReviewDialog";
+import { resolveImageUrl } from "@/utils/media";
 
 export const PatientViewDoctorProfilePage = () => {
   const { id } = useParams<{ id: string }>();
   const doctorId = Number(id);
-  const API_BASE_URL = "http://localhost:9000";
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isAppointmentOpen, setIsAppointmentOpen] = useState(false);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
@@ -111,12 +111,9 @@ export const PatientViewDoctorProfilePage = () => {
         <CardContent className="p-8 flex flex-col md:flex-row items-center md:items-start gap-8">
           <Avatar className="h-32 w-32 border-4 border-white shadow-lg">
             <AvatarImage
-              src={
-                doctor.profilePictureUrl
-                  ? `${API_BASE_URL}${doctor.profilePictureUrl}`
-                  : undefined
-              }
+              src={resolveImageUrl(doctor.profilePictureUrl)}
               className="object-cover"
+              alt="Foto de perfil do médico"
             />
             <AvatarFallback className="text-4xl">
               {doctor.name?.charAt(0)}
@@ -124,9 +121,9 @@ export const PatientViewDoctorProfilePage = () => {
           </Avatar>
 
           <div className="flex-1 text-center md:text-left space-y-2">
-            <div className="flex flex-col md:flex-row items-center md:items-start gap-2">
+            <div className="flex flex-col md:flex-row items-center md:items-center gap-2">
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Dr. {doctor.name}
+                {doctor.name}
               </h1>
               <Badge className="bg-blue-600 hover:bg-blue-700">
                 {doctor.specialization}
@@ -245,11 +242,8 @@ export const PatientViewDoctorProfilePage = () => {
                         <div className="flex items-center gap-3">
                           <Avatar className="h-10 w-10">
                             <AvatarImage
-                              src={
-                                review.patientPhotoUrl
-                                  ? `${API_BASE_URL}${review.patientPhotoUrl}`
-                                  : undefined
-                              }
+                              src={resolveImageUrl(review.patientPhotoUrl)}
+                              alt="Foto do paciente"
                             />
                             <AvatarFallback>
                               {review.patientName

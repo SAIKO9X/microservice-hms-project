@@ -16,8 +16,7 @@ import { uploadFile } from "@/services/media";
 import { getDoctorReviews, getDoctorStats } from "@/services/profile";
 import type { DoctorProfile } from "@/types/doctor.types";
 import type { DoctorProfileFormData } from "@/schemas/profile.schema";
-
-const API_BASE_URL = "http://localhost:9000";
+import { resolveImageUrl } from "@/utils/media";
 
 export const DoctorProfilePage = () => {
   const {
@@ -193,12 +192,8 @@ export const DoctorProfilePage = () => {
             <div className="relative group">
               <Avatar className="h-24 w-24">
                 <AvatarImage
-                  src={
-                    doctorProfile?.profilePictureUrl
-                      ? `${API_BASE_URL}${doctorProfile.profilePictureUrl}`
-                      : undefined
-                  }
-                  alt="Foto do Doutor"
+                  src={resolveImageUrl(doctorProfile?.profilePictureUrl)}
+                  alt="Foto de perfil"
                 />
                 <AvatarFallback className="text-3xl">
                   {user?.name?.charAt(0).toUpperCase() || "D"}
@@ -225,7 +220,7 @@ export const DoctorProfilePage = () => {
 
             <div className="flex-1 text-center sm:text-left space-y-1">
               <CardTitle className="text-2xl">
-                Dr. {user?.name || "Nome não informado"}
+                {user?.name || "Nome não informado"}
               </CardTitle>
               <p className="text-muted-foreground">
                 {doctorProfile?.specialization ||

@@ -37,7 +37,7 @@ export const AdminDoctorSchedulePage = () => {
           {isLoadingDoctor ? (
             <Skeleton className="h-9 w-64" />
           ) : (
-            <h1 className="text-3xl font-bold">Agenda de Dr. {doctor?.name}</h1>
+            <h1 className="text-3xl font-bold">Agenda de {doctor?.name}</h1>
           )}
           <p className="text-muted-foreground">
             Visualize as consultas agendadas, canceladas ou pendentes.

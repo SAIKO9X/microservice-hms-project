@@ -37,7 +37,7 @@ export const AdminDoctorHistoryPage = () => {
             <Skeleton className="h-9 w-64" />
           ) : (
             <h1 className="text-3xl font-bold">
-              Histórico de Dr. {doctor?.name}
+              Histórico de {doctor?.name}
             </h1>
           )}
           <p className="text-muted-foreground">

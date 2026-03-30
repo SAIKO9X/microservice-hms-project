@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, CalendarDays } from "lucide-react";
 import {
   useAppointmentsWithDoctorNames,
   useCancelAppointment,
@@ -7,12 +7,43 @@ import {
 } from "@/services/queries/appointment-queries";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { columns } from "@/features/patient/components/appointmentsColumns";
 import type { AppointmentFormData } from "@/schemas/appointment.schema";
 import { CustomNotification } from "@/components/notifications/CustomNotification";
 import { CreateAppointmentDialog } from "../components/CreateAppointmentDialog";
 import { useNavigate } from "react-router";
-import { Skeleton } from "@/components/ui/skeleton";
+
+const STATS = [
+  {
+    status: "SCHEDULED",
+    label: "Agendadas",
+    color: "text-blue-600",
+    bg: "bg-blue-50 dark:bg-blue-950/30",
+    border: "border-blue-100 dark:border-blue-900",
+  },
+  {
+    status: "COMPLETED",
+    label: "Concluídas",
+    color: "text-green-600",
+    bg: "bg-green-50 dark:bg-green-950/30",
+    border: "border-green-100 dark:border-green-900",
+  },
+  {
+    status: "CANCELED",
+    label: "Canceladas",
+    color: "text-red-600",
+    bg: "bg-red-50 dark:bg-red-950/30",
+    border: "border-red-100 dark:border-red-900",
+  },
+  {
+    status: null,
+    label: "Total",
+    color: "text-zinc-500",
+    bg: "bg-muted",
+    border: "border-border",
+  },
+];
 
 export const PatientAppointmentsPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -41,7 +72,6 @@ export const PatientAppointmentsPage = () => {
   const handleCreateAppointment = async (data: AppointmentFormData) => {
     try {
       await createAppointmentMutation.mutateAsync(data);
-
       setNotification({
         show: true,
         variant: "success",
@@ -49,12 +79,10 @@ export const PatientAppointmentsPage = () => {
         description:
           "Sua consulta foi agendada. Você receberá uma confirmação em breve.",
       });
-
       setIsDialogOpen(false);
     } catch (error: any) {
       let errorMessage =
         "Houve um problema ao agendar sua consulta. Tente novamente.";
-
       if (error?.response?.status === 409) {
         errorMessage = "Este horário já está ocupado. Escolha outro horário.";
       } else if (error?.response?.status === 404) {
@@ -63,7 +91,6 @@ export const PatientAppointmentsPage = () => {
       } else if (error?.response?.data?.message) {
         errorMessage = error.response.data.message;
       }
-
       setNotification({
         show: true,
         variant: "error",
@@ -97,26 +124,20 @@ export const PatientAppointmentsPage = () => {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto py-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-pulse space-y-4">
-              <div className="h-8 bg-gray-200 rounded w-48 mx-auto"></div>
-              <div className="h-4 bg-gray-200 rounded w-32 mx-auto"></div>
-              <div className="space-y-4">
-                {["skeleton-1", "skeleton-2", "skeleton-3", "skeleton-4"].map(
-                  (id) => (
-                    <Skeleton key={id} className="h-20 w-full" />
-                  ),
-                )}
-              </div>
-              <div className="h-64 bg-gray-200 rounded mt-6"></div>
-            </div>
-            <p className="text-muted-foreground mt-4">
-              Carregando consultas...
-            </p>
+      <div className="container mx-auto py-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-64" />
           </div>
+          <Skeleton className="h-10 w-36" />
         </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full rounded-lg" />
+          ))}
+        </div>
+        <Skeleton className="h-64 w-full rounded-lg" />
       </div>
     );
   }
@@ -156,14 +177,20 @@ export const PatientAppointmentsPage = () => {
         />
       )}
 
+      {/* Header */}
       <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">
-            Minhas Consultas
-          </h1>
-          <p className="text-muted-foreground">
-            Gerencie e acompanhe suas consultas médicas
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <CalendarDays className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">
+              Minhas Consultas
+            </h1>
+            <p className="text-muted-foreground">
+              Gerencie e acompanhe suas consultas médicas
+            </p>
+          </div>
         </div>
         <Button
           onClick={() => setIsDialogOpen(true)}
@@ -174,33 +201,24 @@ export const PatientAppointmentsPage = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-card p-4 rounded-lg border shadow-sm">
-          <div className="text-2xl font-bold text-blue-600">
-            {appointments?.filter((a) => a.status === "SCHEDULED").length || 0}
+      {/* Stats cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {STATS.map(({ status, label, color, bg, border }) => (
+          <div
+            key={label}
+            className={`${bg} ${border} p-4 rounded-lg border shadow-sm`}
+          >
+            <div className={`text-2xl font-bold ${color}`}>
+              {status
+                ? (appointments?.filter((a) => a.status === status).length ?? 0)
+                : (appointments?.length ?? 0)}
+            </div>
+            <div className="text-sm text-muted-foreground mt-0.5">{label}</div>
           </div>
-          <div className="text-sm text-muted-foreground">Agendadas</div>
-        </div>
-        <div className="bg-card p-4 rounded-lg border shadow-sm">
-          <div className="text-2xl font-bold text-green-600">
-            {appointments?.filter((a) => a.status === "COMPLETED").length || 0}
-          </div>
-          <div className="text-sm text-muted-foreground">Concluídas</div>
-        </div>
-        <div className="bg-card p-4 rounded-lg border shadow-sm">
-          <div className="text-2xl font-bold text-red-600">
-            {appointments?.filter((a) => a.status === "CANCELED").length || 0}
-          </div>
-          <div className="text-sm text-muted-foreground">Canceladas</div>
-        </div>
-        <div className="bg-card p-4 rounded-lg border shadow-sm">
-          <div className="text-2xl font-bold text-zinc-400">
-            {appointments?.length || 0}
-          </div>
-          <div className="text-sm text-muted-foreground">Total</div>
-        </div>
+        ))}
       </div>
 
+      {/* Table */}
       <div className="bg-card rounded-lg border shadow-sm">
         <DataTable
           columns={columns({
@@ -208,10 +226,11 @@ export const PatientAppointmentsPage = () => {
             handleViewDetails: (id) => navigate(`/patient/appointments/${id}`),
           })}
           data={appointments || []}
+          emptyMessage="Nenhuma consulta encontrada"
+          emptyDescription="Agende sua primeira consulta clicando no botão acima"
         />
       </div>
 
-      {/* Create Appointment Dialog */}
       <CreateAppointmentDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}

@@ -160,10 +160,37 @@ VALUES
 -- ============================================================
 INSERT IGNORE INTO tb_health_metrics (patient_id, blood_pressure, glucose_level, weight, height, bmi, heart_rate, recorded_at)
 VALUES
-    (1, '120/80', 95.0, 70.0, 1.72, 23.7, 72, TIMESTAMP(CURDATE() - INTERVAL 30 DAY, '10:05:00')), -- Patient Demo
-    (2, '148/95', 110.0, 85.0, 1.75, 27.8, 82, TIMESTAMP(CURDATE() - INTERVAL 25 DAY, '14:05:00')), -- João (Consulta)
-    (3, '100/65', 88.0, 25.0, 1.22, 16.8, 98, TIMESTAMP(CURDATE() - INTERVAL 20 DAY, '09:05:00')), -- Maria
-    (4, '128/84', 102.0, 94.0, 1.80, 29.0, 76, TIMESTAMP(CURDATE() - INTERVAL 15 DAY, '11:05:00')), -- Pedro
-    (5, '115/74', 90.0, 57.0, 1.63, 21.4, 68, TIMESTAMP(CURDATE() - INTERVAL 10 DAY, '15:05:00')), -- Ana
-    (6, '132/86', 104.0, 79.0, 1.78, 24.9, 80, TIMESTAMP(CURDATE() - INTERVAL 5 DAY, '10:05:00')), -- Lucas
-    (2, '135/88', 108.0, 85.0, 1.75, 27.8, 78, TIMESTAMP(CURDATE() - INTERVAL 10 DAY, '09:00:00')); -- João (Retorno PA)
+    -- 1. Patient Demo
+    (1, '120/80', 95.0, 70.0, 1.72, 23.7, 72, TIMESTAMP(CURDATE() - INTERVAL 5 DAY, '10:05:00')),
+    (1, '118/78', 92.0, 70.5, 1.72, 23.8, 70, TIMESTAMP(CURDATE() - INTERVAL 1 DAY, '08:30:00')),
+
+    -- 2. João Victor Silva
+    (2, '148/95', 110.0, 85.0, 1.75, 27.8, 82, TIMESTAMP(CURDATE() - INTERVAL 25 DAY, '14:05:00')),
+    (2, '135/88', 108.0, 85.0, 1.75, 27.8, 78, TIMESTAMP(CURDATE() - INTERVAL 2 DAY, '09:00:00')),
+
+    -- 3. Maria Fernanda Santos
+    (3, '110/70', 88.0, 62.0, 1.65, 22.8, 68, TIMESTAMP(CURDATE() - INTERVAL 3 DAY, '09:05:00')),
+
+    -- 4. Pedro Henrique Oliveira
+    (4, '128/84', 102.0, 94.0, 1.80, 29.0, 76, TIMESTAMP(CURDATE() - INTERVAL 4 DAY, '11:05:00')),
+
+    -- 5. Ana Beatriz Costa
+    (5, '115/74', 90.0, 57.0, 1.63, 21.4, 68, TIMESTAMP(CURDATE() - INTERVAL 2 DAY, '15:05:00')),
+
+    -- 6. Lucas Gabriel Ferreira
+    (6, '132/86', 104.0, 79.0, 1.78, 24.9, 80, TIMESTAMP(CURDATE() - INTERVAL 1 DAY, '10:05:00')),
+
+    -- 7. Júlia Rodrigues Alves
+    (7, '118/76', 89.0, 65.0, 1.68, 23.0, 74, TIMESTAMP(CURDATE() - INTERVAL 6 DAY, '14:20:00')),
+
+    -- 8. Marcos Vinícius Souza
+    (8, '140/90', 125.0, 92.0, 1.76, 29.7, 85, TIMESTAMP(CURDATE() - INTERVAL 2 DAY, '08:45:00')),
+
+    -- 9. Fernanda Cristina Lima
+    (9, '122/82', 96.0, 68.0, 1.60, 26.6, 75, TIMESTAMP(CURDATE() - INTERVAL 7 DAY, '11:15:00')),
+
+    -- 10. Gabriel Augusto Rocha
+    (10, '115/75', 85.0, 72.0, 1.82, 21.7, 65, TIMESTAMP(CURDATE() - INTERVAL 3 DAY, '16:30:00')),
+
+    -- 11. Beatriz Caroline Mendes
+    (11, '110/68', 92.0, 55.0, 1.64, 20.4, 70, TIMESTAMP(CURDATE() - INTERVAL 1 DAY, '09:40:00'));

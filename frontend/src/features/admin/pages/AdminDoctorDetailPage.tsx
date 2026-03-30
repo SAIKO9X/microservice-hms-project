@@ -80,7 +80,7 @@ export const AdminDoctorDetailPage = () => {
                 </span>
               </div>
               <div>
-                <CardTitle className="text-2xl">Dr. {doctor.name}</CardTitle>
+                <CardTitle className="text-2xl">{doctor.name}</CardTitle>
                 <div className="flex items-center gap-2 mt-2">
                   <Badge
                     variant="outline"

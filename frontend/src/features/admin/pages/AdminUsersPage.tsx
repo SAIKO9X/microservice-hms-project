@@ -94,7 +94,7 @@ const DoctorCard = ({ doctor }: { doctor: DoctorProfile }) => {
                 </span>
               </div>
               <div>
-                <h3 className="font-semibold text-lg">Dr. {doctor.name}</h3>
+                <h3 className="font-semibold text-lg">{doctor.name}</h3>
                 <p className="text-sm text-muted-foreground">
                   CRM: {doctor.crmNumber || "Não informado"}
                 </p>

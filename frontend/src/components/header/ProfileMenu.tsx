@@ -16,6 +16,7 @@ import { useProfile } from "@/services/queries/profile-queries";
 import { ChevronDown, LogOut, User, SunMoon, Key } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useNavigate } from "react-router";
+import { resolveImageUrl } from "@/utils/media";
 
 export const ProfileMenu = ({ onLogout }: { onLogout: () => void }) => {
   const { setTheme } = useTheme();
@@ -30,7 +31,6 @@ export const ProfileMenu = ({ onLogout }: { onLogout: () => void }) => {
   };
 
   const userRoleDisplay = user ? roleDisplayMap[user.role] : "Usuário";
-  const API_BASE_URL = "http://localhost:9000";
 
   const handleProfileClick = () => {
     if (!user) return;
@@ -72,12 +72,8 @@ export const ProfileMenu = ({ onLogout }: { onLogout: () => void }) => {
         <div className="flex items-center gap-3 cursor-pointer focus-visible:outline-none hover:bg-accent rounded-lg p-2 transition-colors">
           <Avatar className="h-10 w-10">
             <AvatarImage
-              src={
-                profile?.profilePictureUrl
-                  ? `${API_BASE_URL}${profile.profilePictureUrl}`
-                  : undefined
-              }
-              alt="Profile Image"
+              src={resolveImageUrl(profile?.profilePictureUrl)}
+              alt="Foto de perfil"
             />
             <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
               {user?.name?.charAt(0).toUpperCase()}

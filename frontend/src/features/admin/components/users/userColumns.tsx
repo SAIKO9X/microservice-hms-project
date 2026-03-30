@@ -268,7 +268,7 @@ export const doctorColumns = ({
             {row.getValue<string>("name").charAt(0).toUpperCase()}
           </span>
         </div>
-        <span className="font-medium">Dr. {row.getValue("name")}</span>
+        <span className="font-medium">{row.getValue("name")}</span>
       </div>
     ),
   },
